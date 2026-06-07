@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书馆噪声巡检地图</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-left">
+                <h1>📚 图书馆噪声巡检系统</h1>
+                <span id="currentFloor" class="floor-label">1F 综合阅览区</span>
+            </div>
+            <div class="header-right">
+                <div id="roleSelector" class="role-selector">
+                    <label>当前角色:</label>
+                    <select id="roleSelect">
+                        <option value="reader">👤 读者</option>
+                        <option value="librarian">👨‍💼 馆员</option>
+                    </select>
+                </div>
+                <div id="currentUser" class="user-info"></div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <aside class="sidebar">
+                <div class="filter-section">
+                    <h3>🔍 区域筛选</h3>
+                    <div class="filter-group">
+                        <label>楼层</label>
+                        <select id="floorFilter">
+                            <option value="all">全部楼层</option>
+                            <option value="1">1F 综合阅览区</option>
+                            <option value="2">2F 文学阅览区</option>
+                            <option value="3">3F 科技阅览区</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>状态</label>
+                        <select id="statusFilter">
+                            <option value="all">全部状态</option>
+                            <option value="normal">✅ 正常</option>
+                            <option value="warning">⚠️ 预警</option>
+                            <option value="alarm">🔴 告警</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>区域类型</label>
+                        <select id="typeFilter">
+                            <option value="all">全部类型</option>
+                            <option value="reading">阅览区</option>
+                            <option value="study">自习区</option>
+                            <option value="corridor">走廊</option>
+                            <option value="rest">休息区</option>
+                        </select>
+                    </div>
+                    <button id="applyFilter" class="btn btn-primary">应用筛选</button>
+                    <button id="resetFilter" class="btn btn-secondary">重置</button>
+                </div>
+
+                <div class="trend-section" id="trendSection">
+                    <h3>📊 噪声趋势</h3>
+                    <div class="trend-cards">
+                        <div class="trend-card">
+                            <div class="trend-value" id="avgDecibel">--</div>
+                            <div class="trend-label">平均分贝</div>
+                        </div>
+                        <div class="trend-card warning">
+                            <div class="trend-value" id="warningCount">--</div>
+                            <div class="trend-label">预警区域</div>
+                        </div>
+                        <div class="trend-card danger">
+                            <div class="trend-value" id="alarmCount">--</div>
+                            <div class="trend-label">告警区域</div>
+                        </div>
+                        <div class="trend-card info">
+                            <div class="trend-value" id="todayInspections">--</div>
+                            <div class="trend-label">今日巡检</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-section" id="librarianActions">
+                    <h3>⚙️ 馆员操作</h3>
+                    <button id="addAreaBtn" class="btn btn-primary btn-block">➕ 新增阅览区</button>
+                    <button id="exportBtn" class="btn btn-success btn-block">📤 导出巡检数据</button>
+                    <button id="clearDataBtn" class="btn btn-danger btn-block">🗑️ 清空本地数据</button>
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="map-container">
+                    <div class="map-header">
+                        <h2 id="mapTitle">1F 综合阅览区 - 噪声分布地图</h2>
+                        <div class="floor-nav">
+                            <button class="floor-btn active" data-floor="1" onclick="setFloor(1)">1F</button>
+                            <button class="floor-btn" data-floor="2" onclick="setFloor(2)">2F</button>
+                            <button class="floor-btn" data-floor="3" onclick="setFloor(3)">3F</button>
+                        </div>
+                        <div class="map-legend">
+                            <span class="legend-item"><span class="legend-color normal"></span> 正常 (≤50dB)</span>
+                            <span class="legend-item"><span class="legend-color warning"></span> 预警 (51-65dB)</span>
+                            <span class="legend-item"><span class="legend-color alarm flashing"></span> 告警 (>65dB)</span>
+                        </div>
+                    </div>
+                    <div id="floorMap" class="floor-map"></div>
+                </div>
+
+                <div class="panels-container">
+                    <div class="panel noise-entry-panel" id="noiseEntryPanel">
+                        <div class="panel-header">
+                            <h3>📝 噪声录入</h3>
+                        </div>
+                        <div class="panel-body">
+                            <form id="noiseEntryForm">
+                                <div class="form-group">
+                                    <label for="entryArea">选择区域</label>
+                                    <select id="entryArea" required></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="entryDecibel">分贝值 (dB)</label>
+                                    <input type="number" id="entryDecibel" min="0" max="120" placeholder="输入分贝值 0-120" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="entryNote">备注</label>
+                                    <textarea id="entryNote" rows="2" placeholder="可选：记录噪声来源"></textarea>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">提交录入</button>
+                                    <button type="reset" class="btn btn-secondary">重置</button>
+                                </div>
+                                <div id="entryResponse" class="response-message"></div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="panel reminder-panel">
+                        <div class="panel-header">
+                            <h3>🔔 提醒列表</h3>
+                            <span id="reminderBadge" class="badge">0</span>
+                        </div>
+                        <div class="panel-body">
+                            <div id="reminderList" class="reminder-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="areaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">新增阅览区</h3>
+                <span class="close" id="closeModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="areaForm">
+                    <input type="hidden" id="areaId">
+                    <div class="form-group">
+                        <label for="areaName">区域名称</label>
+                        <input type="text" id="areaName" required placeholder="如：文学阅览区A">
+                    </div>
+                    <div class="form-group">
+                        <label for="areaFloor">所属楼层</label>
+                        <select id="areaFloor" required>
+                            <option value="1">1F 综合阅览区</option>
+                            <option value="2">2F 文学阅览区</option>
+                            <option value="3">3F 科技阅览区</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="areaType">区域类型</label>
+                        <select id="areaType" required>
+                            <option value="reading">阅览区</option>
+                            <option value="study">自习区</option>
+                            <option value="corridor">走廊</option>
+                            <option value="rest">休息区</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>地图位置 (X, Y, 宽度, 高度)</label>
+                        <div class="position-inputs">
+                            <input type="number" id="areaX" placeholder="X" min="0" max="800" required>
+                            <input type="number" id="areaY" placeholder="Y" min="0" max="600" required>
+                            <input type="number" id="areaWidth" placeholder="宽度" min="50" max="300" required>
+                            <input type="number" id="areaHeight" placeholder="高度" min="50" max="200" required>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" id="cancelAreaBtn" class="btn btn-secondary">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/mock-data.js?v=1.1"></script>
+    <script src="js/app.js?v=1.1"></script>
+</body>
+</html>
