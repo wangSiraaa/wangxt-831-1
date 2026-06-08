@@ -16,6 +16,16 @@ let appState = {
         floor: 'all',
         status: 'all',
         type: 'all'
+    },
+    previewData: {
+        rawRecords: [],
+        validatedRecords: [],
+        stats: {
+            valid: 0,
+            alarm: 0,
+            missing: 0,
+            overwrite: 0
+        }
     }
 };
 
@@ -160,6 +170,20 @@ function initEventListeners() {
     document.getElementById('clearDataBtn').addEventListener('click', () => {
         if (confirm('确定要清空所有本地数据吗？此操作不可恢复。')) {
             clearAllData();
+        }
+    });
+
+    document.getElementById('batchImportBtn').addEventListener('click', openBatchImportModal);
+    document.getElementById('closeBatchImportModal').addEventListener('click', closeBatchImportModal);
+    document.getElementById('cancelImportBtn').addEventListener('click', closeBatchImportModal);
+    document.getElementById('confirmImportBtn').addEventListener('click', confirmBatchImport);
+    document.getElementById('clearPreviewBtn').addEventListener('click', clearPreview);
+    document.getElementById('loadSampleDataBtn').addEventListener('click', loadSampleImportData);
+    document.getElementById('importFileInput').addEventListener('change', handleFileImport);
+
+    document.getElementById('batchImportModal').addEventListener('click', (e) => {
+        if (e.target.id === 'batchImportModal') {
+            closeBatchImportModal();
         }
     });
 
@@ -684,6 +708,314 @@ function showToast(message, type = 'info') {
 function setFloor(floor) {
     appState.currentFloor = floor;
     renderUI();
+}
+
+const SAMPLE_IMPORT_DATA = [
+    { areaId: "A101", decibel: 72, note: "大声讨论问题" },
+    { areaId: "A102", decibel: 48, note: "安静" },
+    { areaId: "A201", decibel: 68, note: "多人交谈" },
+    { areaId: "A202", note: "缺少分贝值" },
+    { decibel: 55, note: "缺少区域ID" },
+    { areaId: "A301", decibel: 85, note: "设备噪音" },
+    { areaId: "A302", decibel: 42, note: "" },
+    { areaId: "A999", decibel: 60, note: "不存在的区域" }
+];
+
+function openBatchImportModal() {
+    if (appState.currentRole !== 'librarian') {
+        showToast('只有馆员可以使用批量导入功能', 'error');
+        return;
+    }
+    clearPreview();
+    document.getElementById('batchImportModal').classList.add('show');
+}
+
+function closeBatchImportModal() {
+    document.getElementById('batchImportModal').classList.remove('show');
+    clearPreview();
+}
+
+function clearPreview() {
+    appState.previewData = {
+        rawRecords: [],
+        validatedRecords: [],
+        stats: { valid: 0, alarm: 0, missing: 0, overwrite: 0 }
+    };
+    document.getElementById('importFileInput').value = '';
+    document.getElementById('previewStats').style.display = 'none';
+    document.getElementById('previewLegend').style.display = 'none';
+    document.getElementById('previewListContainer').style.display = 'none';
+    document.getElementById('importActions').style.display = 'none';
+    document.getElementById('emptyPreview').style.display = 'block';
+    document.getElementById('previewList').innerHTML = '';
+}
+
+function loadSampleImportData() {
+    processImportData(JSON.parse(JSON.stringify(SAMPLE_IMPORT_DATA)));
+    showToast('样例数据已加载', 'info');
+}
+
+function handleFileImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            let records;
+            if (file.name.endsWith('.json')) {
+                records = JSON.parse(event.target.result);
+            } else if (file.name.endsWith('.csv')) {
+                records = parseCSV(event.target.result);
+            } else {
+                showToast('不支持的文件格式，请使用 JSON 或 CSV', 'error');
+                return;
+            }
+
+            if (!Array.isArray(records)) {
+                showToast('数据格式错误，需要数组格式', 'error');
+                return;
+            }
+
+            processImportData(records);
+            showToast(`成功加载 ${records.length} 条记录`, 'success');
+        } catch (err) {
+            console.error('Import error:', err);
+            showToast('文件解析失败：' + err.message, 'error');
+        }
+    };
+    reader.onerror = function() {
+        showToast('文件读取失败', 'error');
+    };
+    reader.readAsText(file);
+}
+
+function parseCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const records = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const record = {};
+        headers.forEach((header, idx) => {
+            let value = values[idx] || '';
+            if (header === 'decibel' && value !== '') {
+                value = parseInt(value);
+            }
+            record[header] = value;
+        });
+        records.push(record);
+    }
+
+    return records;
+}
+
+function processImportData(records) {
+    appState.previewData.rawRecords = records;
+    appState.previewData.validatedRecords = [];
+    appState.previewData.stats = { valid: 0, alarm: 0, missing: 0, overwrite: 0 };
+
+    const existingAreaIds = new Set(appState.areas.map(a => a.id));
+
+    records.forEach((record, index) => {
+        const validated = {
+            index: index,
+            raw: record,
+            areaId: record.areaId || '',
+            decibel: record.decibel,
+            note: record.note || '',
+            issues: [],
+            isAlarm: false,
+            isMissing: false,
+            isOverwrite: false,
+            isValid: true,
+            area: null
+        };
+
+        if (!validated.areaId) {
+            validated.issues.push('缺少 areaId');
+            validated.isMissing = true;
+            validated.isValid = false;
+        }
+
+        if (validated.decibel === undefined || validated.decibel === null || validated.decibel === '') {
+            validated.issues.push('缺少 decibel');
+            validated.isMissing = true;
+            validated.isValid = false;
+        } else if (isNaN(validated.decibel) || validated.decibel < 0 || validated.decibel > 120) {
+            validated.issues.push('decibel 超出有效范围 (0-120)');
+            validated.isMissing = true;
+            validated.isValid = false;
+        }
+
+        if (validated.areaId && !existingAreaIds.has(validated.areaId)) {
+            validated.issues.push('区域ID不存在');
+            validated.isMissing = true;
+            validated.isValid = false;
+        }
+
+        if (validated.isValid) {
+            validated.area = appState.areas.find(a => a.id === validated.areaId);
+
+            if (validated.decibel >= MOCK_DATA.threshold.alarm) {
+                validated.isAlarm = true;
+            }
+
+            if (validated.area && validated.area.currentDecibel !== validated.decibel) {
+                validated.isOverwrite = true;
+            }
+
+            appState.previewData.stats.valid++;
+            if (validated.isAlarm) appState.previewData.stats.alarm++;
+            if (validated.isOverwrite) appState.previewData.stats.overwrite++;
+        } else {
+            appState.previewData.stats.missing++;
+        }
+
+        appState.previewData.validatedRecords.push(validated);
+    });
+
+    renderPreview();
+}
+
+function renderPreview() {
+    const { validatedRecords, stats } = appState.previewData;
+
+    document.getElementById('emptyPreview').style.display = 'none';
+    document.getElementById('previewStats').style.display = 'grid';
+    document.getElementById('previewLegend').style.display = 'flex';
+    document.getElementById('previewListContainer').style.display = 'block';
+    document.getElementById('importActions').style.display = 'block';
+
+    document.getElementById('validCount').textContent = stats.valid;
+    document.getElementById('alarmCount').textContent = stats.alarm;
+    document.getElementById('missingCount').textContent = stats.missing;
+    document.getElementById('overwriteCount').textContent = stats.overwrite;
+
+    const listEl = document.getElementById('previewList');
+    listEl.innerHTML = validatedRecords.map(record => {
+        let rowClass = 'preview-row valid-row';
+        let statusIcon = '✅';
+        let statusText = '有效';
+
+        if (record.isMissing) {
+            rowClass = 'preview-row missing-row';
+            statusIcon = '⚠️';
+            statusText = '缺字段';
+        } else if (record.isAlarm) {
+            rowClass = 'preview-row alarm-row';
+            statusIcon = '🔴';
+            statusText = '告警';
+        } else if (record.isOverwrite) {
+            rowClass = 'preview-row overwrite-row';
+            statusIcon = '🔄';
+            statusText = '覆盖';
+        }
+
+        const areaName = record.area ? record.area.name : '未知区域';
+        const oldDecibel = record.area ? record.area.currentDecibel : '--';
+        const issuesText = record.issues.length > 0 ? ` (${record.issues.join(', ')})` : '';
+
+        return `
+            <div class="${rowClass}">
+                <div class="preview-row-header">
+                    <span class="status-badge">${statusIcon} ${statusText}</span>
+                    <span class="preview-area">${areaName} (${record.areaId || 'N/A'})</span>
+                </div>
+                <div class="preview-row-details">
+                    <span class="detail-item">
+                        <strong>分贝值:</strong> 
+                        <span class="${record.isAlarm ? 'alarm-text' : ''}">${record.decibel !== undefined ? record.decibel + ' dB' : '缺失'}</span>
+                        ${record.isOverwrite && !record.isMissing ? `<span class="overwrite-indicator"> (原: ${oldDecibel} dB)</span>` : ''}
+                    </span>
+                    ${record.note ? `<span class="detail-item"><strong>备注:</strong> ${record.note}</span>` : ''}
+                    ${issuesText ? `<span class="detail-item issues">${issuesText}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function confirmBatchImport() {
+    const { validatedRecords, stats } = appState.previewData;
+
+    if (stats.valid === 0) {
+        showToast('没有有效记录可以导入', 'error');
+        return;
+    }
+
+    if (!confirm(`确认导入 ${stats.valid} 条有效记录？\n其中 ${stats.alarm} 条将触发告警，${stats.overwrite} 条将覆盖旧数据。`)) {
+        return;
+    }
+
+    let importedCount = 0;
+    let alarmCount = 0;
+
+    validatedRecords.forEach(record => {
+        if (!record.isValid) return;
+
+        const area = record.area;
+        if (!area) return;
+
+        const oldStatus = area.status;
+        const newStatus = getStatusFromDecibel(record.decibel);
+        const statusChanged = oldStatus !== newStatus;
+
+        area.currentDecibel = record.decibel;
+        area.status = newStatus;
+        area.lastUpdated = new Date().toLocaleString('zh-CN');
+
+        const inspection = {
+            id: 'I' + Date.now() + Math.random().toString(36).substr(2, 9),
+            areaId: area.id,
+            areaName: area.name,
+            floor: area.floor,
+            decibel: record.decibel,
+            note: record.note,
+            inspector: appState.currentUser.name,
+            createdAt: new Date().toLocaleString('zh-CN')
+        };
+        appState.inspections.unshift(inspection);
+
+        if (newStatus === 'alarm' || newStatus === 'warning') {
+            const existingReminder = appState.reminders.find(r => r.areaId === area.id && r.status === 'pending');
+            if (!existingReminder) {
+                const reminder = {
+                    id: 'R' + Date.now() + Math.random().toString(36).substr(2, 9),
+                    areaId: area.id,
+                    areaName: area.name,
+                    floor: area.floor,
+                    decibel: record.decibel,
+                    priority: newStatus === 'alarm' ? 'high' : 'medium',
+                    message: newStatus === 'alarm' ? '噪声严重超标，请立即处理' : '噪声接近阈值，注意观察',
+                    createdAt: new Date().toLocaleString('zh-CN'),
+                    status: 'pending'
+                };
+                appState.reminders.unshift(reminder);
+                if (newStatus === 'alarm') alarmCount++;
+            } else {
+                existingReminder.decibel = record.decibel;
+                existingReminder.priority = newStatus === 'alarm' ? 'high' : 'medium';
+                existingReminder.createdAt = new Date().toLocaleString('zh-CN');
+                if (newStatus === 'alarm' && existingReminder.priority !== 'high') alarmCount++;
+            }
+        }
+
+        importedCount++;
+    });
+
+    saveToStorage(STORAGE_KEYS.AREAS, appState.areas);
+    saveToStorage(STORAGE_KEYS.INSPECTIONS, appState.inspections);
+    saveToStorage(STORAGE_KEYS.REMINDERS, appState.reminders);
+
+    renderUI();
+    updateTrendCards();
+
+    closeBatchImportModal();
+    showToast(`成功导入 ${importedCount} 条记录${alarmCount > 0 ? `，新增 ${alarmCount} 条告警` : ''}`, 'success');
 }
 
 document.addEventListener('DOMContentLoaded', initApp);

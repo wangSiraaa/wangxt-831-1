@@ -86,6 +86,7 @@
                 <div class="action-section" id="librarianActions">
                     <h3>⚙️ 馆员操作</h3>
                     <button id="addAreaBtn" class="btn btn-primary btn-block">➕ 新增阅览区</button>
+                    <button id="batchImportBtn" class="btn btn-warning btn-block">📥 批量导入预览</button>
                     <button id="exportBtn" class="btn btn-success btn-block">📤 导出巡检数据</button>
                     <button id="clearDataBtn" class="btn btn-danger btn-block">🗑️ 清空本地数据</button>
                 </div>
@@ -199,9 +200,74 @@
         </div>
     </div>
 
+    <div id="batchImportModal" class="modal">
+        <div class="modal-content batch-import-modal">
+            <div class="modal-header">
+                <h3>📥 批量导入预览</h3>
+                <span class="close" id="closeBatchImportModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="import-section">
+                    <div class="form-group">
+                        <label>选择导入文件 (JSON / CSV)</label>
+                        <input type="file" id="importFileInput" accept=".json,.csv" class="file-input">
+                    </div>
+                    <div class="form-actions">
+                        <button id="loadSampleDataBtn" class="btn btn-info">📋 加载样例数据</button>
+                        <button id="clearPreviewBtn" class="btn btn-secondary">🗑️ 清空预览</button>
+                    </div>
+                </div>
+
+                <div class="preview-stats" id="previewStats" style="display: none;">
+                    <div class="stat-card valid">
+                        <div class="stat-value" id="validCount">0</div>
+                        <div class="stat-label">✅ 有效记录</div>
+                    </div>
+                    <div class="stat-card alarm">
+                        <div class="stat-value" id="alarmCount">0</div>
+                        <div class="stat-label">🔴 告警区域</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="missingCount">0</div>
+                        <div class="stat-label">⚠️ 缺字段</div>
+                    </div>
+                    <div class="stat-card overwrite">
+                        <div class="stat-value" id="overwriteCount">0</div>
+                        <div class="stat-label">🔄 将覆盖</div>
+                    </div>
+                </div>
+
+                <div class="preview-legend" id="previewLegend" style="display: none;">
+                    <span class="legend-tag alarm-tag">🔴 触发告警</span>
+                    <span class="legend-tag missing-tag">⚠️ 缺字段</span>
+                    <span class="legend-tag overwrite-tag">🔄 覆盖旧数据</span>
+                    <span class="legend-tag valid-tag">✅ 有效</span>
+                </div>
+
+                <div class="preview-list-container" id="previewListContainer" style="display: none;">
+                    <h4>预览列表</h4>
+                    <div id="previewList" class="preview-list"></div>
+                </div>
+
+                <div class="empty-preview" id="emptyPreview">
+                    <p>📁 请选择 JSON 或 CSV 文件导入，或点击"加载样例数据"查看演示</p>
+                    <p class="hint-text">支持格式：<code>[{"areaId": "A101", "decibel": 55, "note": "备注"}]</code></p>
+                </div>
+
+                <div class="import-actions" id="importActions" style="display: none;">
+                    <div class="form-actions">
+                        <button id="confirmImportBtn" class="btn btn-primary">✓ 确认导入</button>
+                        <button id="cancelImportBtn" class="btn btn-secondary">✗ 取消导入</button>
+                    </div>
+                    <p class="import-warning">⚠️ 确认后将更新本地巡检点状态，取消则不改动任何数据</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
 
     <script src="js/mock-data.js?v=1.1"></script>
-    <script src="js/app.js?v=1.1"></script>
+    <script src="js/app.js?v=1.2"></script>
 </body>
 </html>

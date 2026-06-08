@@ -1,0 +1,10 @@
+[
+    {"areaId": "A101", "decibel": 72, "note": "大声讨论问题"},
+    {"areaId": "A102", "decibel": 48, "note": "安静"},
+    {"areaId": "A201", "decibel": 68, "note": "多人交谈"},
+    {"areaId": "A202", "note": "缺少分贝值"},
+    {"decibel": 55, "note": "缺少区域ID"},
+    {"areaId": "A301", "decibel": 85, "note": "设备噪音"},
+    {"areaId": "A302", "decibel": 42, "note": ""},
+    {"areaId": "A999", "decibel": 60, "note": "不存在的区域"}
+]

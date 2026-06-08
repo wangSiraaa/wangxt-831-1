@@ -710,3 +710,272 @@ body {
         text-align: center;
     }
 }
+
+.btn-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+}
+
+.batch-import-modal {
+    max-width: 800px !important;
+    width: 95% !important;
+}
+
+.import-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.file-input {
+    padding: 0.5rem;
+    border: 2px dashed #bdc3c7;
+    border-radius: 8px;
+    width: 100%;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.file-input:hover {
+    border-color: #667eea;
+    background: #f0f3ff;
+}
+
+.preview-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-card {
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    color: white;
+}
+
+.stat-card.valid {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+}
+
+.stat-card.alarm {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.stat-card.warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.stat-card.overwrite {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    opacity: 0.95;
+}
+
+.preview-legend {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.legend-tag {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.alarm-tag {
+    background: #fdecea;
+    color: #c0392b;
+}
+
+.missing-tag {
+    background: #fef5e7;
+    color: #e67e22;
+}
+
+.overwrite-tag {
+    background: #f5eefc;
+    color: #8e44ad;
+}
+
+.valid-tag {
+    background: #eafaf1;
+    color: #27ae60;
+}
+
+.preview-list-container {
+    margin-bottom: 1.5rem;
+}
+
+.preview-list-container h4 {
+    margin-bottom: 0.75rem;
+    color: #34495e;
+    font-size: 0.95rem;
+}
+
+.preview-list {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid #ecf0f1;
+    border-radius: 8px;
+}
+
+.preview-row {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #ecf0f1;
+    transition: background 0.2s;
+}
+
+.preview-row:last-child {
+    border-bottom: none;
+}
+
+.preview-row:hover {
+    background: #f8f9fa;
+}
+
+.preview-row.valid-row {
+    border-left: 4px solid #27ae60;
+}
+
+.preview-row.alarm-row {
+    border-left: 4px solid #e74c3c;
+    background: #fef8f8;
+}
+
+.preview-row.missing-row {
+    border-left: 4px solid #f39c12;
+    background: #fefbf5;
+    opacity: 0.8;
+}
+
+.preview-row.overwrite-row {
+    border-left: 4px solid #9b59b6;
+    background: #faf5fc;
+}
+
+.preview-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.preview-area {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.preview-row-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.detail-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.detail-item strong {
+    color: #34495e;
+    font-weight: 500;
+}
+
+.alarm-text {
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+.overwrite-indicator {
+    color: #9b59b6;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.detail-item.issues {
+    color: #e67e22;
+    font-style: italic;
+}
+
+.empty-preview {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #95a5a6;
+}
+
+.empty-preview p {
+    margin-bottom: 0.5rem;
+}
+
+.empty-preview .hint-text {
+    font-size: 0.85rem;
+    color: #bdc3c7;
+}
+
+.empty-preview code {
+    background: #f8f9fa;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #7f8c8d;
+}
+
+.import-actions {
+    padding-top: 1rem;
+    border-top: 1px solid #ecf0f1;
+}
+
+.import-warning {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: #e67e22;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .preview-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .batch-import-modal {
+        width: 100% !important;
+        max-height: 95vh !important;
+    }
+    
+    .preview-row-details {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
